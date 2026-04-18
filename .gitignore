@@ -1,2 +1,4 @@
 mlruns/
 cuisine_pipeline.joblib
+
+__pycache__

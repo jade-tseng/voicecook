@@ -1,4 +1,4 @@
-"""Unit tests for llm.py — Anthropic client is mocked, no API key needed."""
+"""Unit tests for llm.py — Gemini client is mocked, no API key needed."""
 import sys
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -6,13 +6,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-os.environ.setdefault("ANTHROPIC_API_KEY", "test-key")
+os.environ.setdefault("GEMINI_API_KEY", "test-key")
 
 from llm import stream_recipe_answer
 
 
-async def _fake_text_stream(chunks):
-    for chunk in chunks:
+async def _fake_stream(chunks):
+    for text in chunks:
+        chunk = MagicMock()
+        chunk.text = text
         yield chunk
 
 
@@ -20,15 +22,13 @@ async def _fake_text_stream(chunks):
 async def test_stream_yields_text_chunks():
     fake_chunks = ["Sure", ", ", "add", " bacon", " instead."]
 
-    mock_stream = MagicMock()
-    mock_stream.__aenter__ = AsyncMock(return_value=mock_stream)
-    mock_stream.__aexit__ = AsyncMock(return_value=False)
-    mock_stream.text_stream = _fake_text_stream(fake_chunks)
+    mock_aio = MagicMock()
+    mock_aio.models.generate_content_stream = AsyncMock(return_value=_fake_stream(fake_chunks))
 
     mock_client = MagicMock()
-    mock_client.messages.stream.return_value = mock_stream
+    mock_client.aio = mock_aio
 
-    with patch("llm.anthropic.AsyncAnthropic", return_value=mock_client):
+    with patch("llm.genai.Client", return_value=mock_client):
         result = []
         async for chunk in stream_recipe_answer(
             recipe_text="Recipe here",
@@ -47,15 +47,15 @@ async def test_stream_includes_history_in_messages():
         {"role": "assistant", "content": "About 25 minutes."},
     ]
 
-    mock_stream = MagicMock()
-    mock_stream.__aenter__ = AsyncMock(return_value=mock_stream)
-    mock_stream.__aexit__ = AsyncMock(return_value=False)
-    mock_stream.text_stream = _fake_text_stream(["Yes."])
+    mock_generate = AsyncMock(return_value=_fake_stream(["Yes."]))
+
+    mock_aio = MagicMock()
+    mock_aio.models.generate_content_stream = mock_generate
 
     mock_client = MagicMock()
-    mock_client.messages.stream.return_value = mock_stream
+    mock_client.aio = mock_aio
 
-    with patch("llm.anthropic.AsyncAnthropic", return_value=mock_client):
+    with patch("llm.genai.Client", return_value=mock_client):
         async for _ in stream_recipe_answer(
             recipe_text="Recipe",
             history=history,
@@ -63,25 +63,28 @@ async def test_stream_includes_history_in_messages():
         ):
             pass
 
-    call_kwargs = mock_client.messages.stream.call_args.kwargs
-    messages = call_kwargs["messages"]
-    assert messages[:2] == history
-    assert messages[-1] == {"role": "user", "content": "Follow-up question"}
+    contents = mock_generate.call_args.kwargs["contents"]
+    assert contents[0].role == "user"
+    assert contents[0].parts[0].text == "How long does this take?"
+    assert contents[1].role == "model"
+    assert contents[1].parts[0].text == "About 25 minutes."
+    assert contents[-1].role == "user"
+    assert contents[-1].parts[0].text == "Follow-up question"
 
 
 @pytest.mark.asyncio
 async def test_stream_system_prompt_contains_recipe():
     recipe = "Carbonara recipe details here"
 
-    mock_stream = MagicMock()
-    mock_stream.__aenter__ = AsyncMock(return_value=mock_stream)
-    mock_stream.__aexit__ = AsyncMock(return_value=False)
-    mock_stream.text_stream = _fake_text_stream(["Ok."])
+    mock_generate = AsyncMock(return_value=_fake_stream(["Ok."]))
+
+    mock_aio = MagicMock()
+    mock_aio.models.generate_content_stream = mock_generate
 
     mock_client = MagicMock()
-    mock_client.messages.stream.return_value = mock_stream
+    mock_client.aio = mock_aio
 
-    with patch("llm.anthropic.AsyncAnthropic", return_value=mock_client):
+    with patch("llm.genai.Client", return_value=mock_client):
         async for _ in stream_recipe_answer(
             recipe_text=recipe,
             history=[],
@@ -89,5 +92,5 @@ async def test_stream_system_prompt_contains_recipe():
         ):
             pass
 
-    call_kwargs = mock_client.messages.stream.call_args.kwargs
-    assert recipe in call_kwargs["system"]
+    system = mock_generate.call_args.kwargs["config"].system_instruction
+    assert recipe in system

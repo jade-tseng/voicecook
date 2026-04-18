@@ -68,20 +68,30 @@ async def chat_stream(req: ChatRequest):
     accumulated: list[str] = []
 
     async def event_generator():
-        async for chunk in stream_recipe_answer(
-            recipe_text=session["recipe_text"],
-            history=session["history"],
-            user_message=req.message,
-        ):
-            accumulated.append(chunk)
-            yield f"data: {chunk}\n\n"
+        try:
+            async for chunk in stream_recipe_answer(
+                recipe_text=session["recipe_text"],
+                history=session["history"],
+                user_message=req.message,
+            ):
+                accumulated.append(chunk)
+                yield f"data: {chunk}\n\n"
 
-        full_response = "".join(accumulated)
-        append_history(req.session_id, "user", req.message)
-        append_history(req.session_id, "assistant", full_response)
-        yield "data: [DONE]\n\n"
+            full_response = "".join(accumulated)
+            append_history(req.session_id, "user", req.message)
+            append_history(req.session_id, "assistant", full_response)
+            yield "data: [DONE]\n\n"
+        except Exception as exc:
+            yield f"data: [ERROR] {exc}\n\n"
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.post("/tts")
