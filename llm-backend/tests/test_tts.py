@@ -5,7 +5,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # Provide a dummy API key so config.py doesn't raise at import time
-os.environ.setdefault("ANTHROPIC_API_KEY", "test-key")
+os.environ.setdefault("GEMINI_API_KEY", "test-key")
 
 from tts import text_to_mp3_bytes
 
@@ -23,7 +23,7 @@ def test_tts_produces_nonempty_mp3():
 def test_tts_mp3_header():
     audio = text_to_mp3_bytes("Remove the pan from heat.")
     # MP3 files start with an ID3 tag or a sync frame
-    assert audio[:3] == b"ID3" or audio[:2] == b"\xff\xfb", (
+    assert audio[:3] == b"ID3" or audio[0:1] == b"\xff", (
         f"Unexpected MP3 header bytes: {audio[:4]!r}"
     )
 

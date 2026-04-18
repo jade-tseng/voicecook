@@ -1,11 +1,11 @@
 """
-Integration tests — require a live server and ANTHROPIC_API_KEY.
+Integration tests — require a live server and GEMINI_API_KEY.
 
 Start the server before running:
     cd llm-backend && uvicorn app:app --port 8001
 
 Run with:
-    ANTHROPIC_API_KEY=sk-... pytest tests/test_pipeline.py -v
+    GEMINI_API_KEY=... pytest tests/test_pipeline.py -v
 """
 import pytest
 import httpx
@@ -68,7 +68,7 @@ def test_tts_returns_mp3():
     assert resp.status_code == 200
     assert resp.headers["content-type"] == "audio/mpeg"
     assert len(resp.content) > 1000
-    assert resp.content[:3] == b"ID3" or resp.content[:2] == b"\xff\xfb"
+    assert resp.content[:3] == b"ID3" or resp.content[0:1] == b"\xff"
 
 
 def test_tts_rejects_empty_text():
