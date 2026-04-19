@@ -1,0 +1,42 @@
+# CookBot seed URL example file
+# Supply your own larger list — this file is for smoke-testing the seeder.
+# Lines beginning with # are ignored. Blank lines are skipped.
+# Supported sites: https://github.com/hhursev/recipe-scrapers#scrapers-available
+
+# --- AllRecipes ---
+https://www.allrecipes.com/recipe/213742/cheesy-ham-and-hash-brown-casserole/
+https://www.allrecipes.com/recipe/8652/garlic-chicken/
+https://www.allrecipes.com/recipe/234667/chef-johns-chicken-tikka-masala/
+https://www.allrecipes.com/recipe/25473/the-best-lasagna-ever/
+
+# --- BBC Good Food ---
+https://www.bbcgoodfood.com/recipes/spaghetti-bolognese-best
+https://www.bbcgoodfood.com/recipes/chicken-tikka-masala
+https://www.bbcgoodfood.com/recipes/slow-cooker-beef-stew
+
+# --- Epicurious ---
+https://www.epicurious.com/recipes/food/views/pasta-carbonara-51189640
+https://www.epicurious.com/recipes/food/views/simple-roast-chicken-231348
+
+# --- Food Network ---
+https://www.foodnetwork.com/recipes/tyler-florence/guacamole-recipe-1910776
+https://www.foodnetwork.com/recipes/food-network-kitchen/the-best-beef-stew-recipe-2109894
+
+# --- Serious Eats ---
+https://www.seriouseats.com/the-best-slow-cooked-italian-american-tomato-sauce-red-sauce-recipe
+https://www.seriouseats.com/perfect-pan-seared-chicken-breasts-recipe
+
+# --- Simply Recipes ---
+https://www.simplyrecipes.com/recipes/chicken_soup/
+https://www.simplyrecipes.com/recipes/homemade_pizza/
+
+# --- Budget Bytes ---
+https://www.budgetbytes.com/one-pot-cheesy-chicken-broccoli-rice-casserole/
+https://www.budgetbytes.com/slow-cooker-beef-and-broccoli/
+
+# --- Delish ---
+https://www.delish.com/cooking/recipe-ideas/a19636089/chicken-tikka-masala-recipe/
+https://www.delish.com/cooking/recipe-ideas/a25648042/best-beef-stew-recipe/
+
+# --- Tasty ---
+https://tasty.co/recipe/crispy-honey-shrimp
