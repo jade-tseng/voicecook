@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoiceCook</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f7ff;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.5rem 1rem;
+    }
+    #app { width: 100%; max-width: 560px; }
+
+    .vc-header { margin-bottom: 2rem; }
+    .vc-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+    .vc-logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: #378add;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .vc-logo-icon svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .vc-title { font-size: 22px; font-weight: 500; color: #0c447c; }
+    .vc-subtitle { font-size: 14px; color: #378add; margin-left: 46px; }
+
+    .vc-card {
+      background: #fff;
+      border: 0.5px solid #b5d4f4;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    /* mic */
+    .vc-mic-area { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+    #mic-btn {
+      width: 80px; height: 80px; border-radius: 50%;
+      border: 1.5px solid #b5d4f4; background: #e6f1fb;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, border-color 0.2s, transform 0.1s;
+    }
+    #mic-btn:hover { background: #d0e8f8; border-color: #85b7eb; }
+    #mic-btn.listening { border-color: #378add; animation: pulse 1.2s ease-in-out infinite; }
+    #mic-btn svg { width: 32px; height: 32px; stroke: #378add; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
+    #status { font-size: 13px; color: #185fa5; text-align: center; min-height: 18px; }
+
+    .vc-divider {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 1.25rem; font-size: 12px; color: #85b7eb;
+    }
+    .vc-divider::before, .vc-divider::after { content: ''; flex: 1; height: 0.5px; background: #b5d4f4; }
+
+    /* single input */
+    .vc-input-row { display: flex; gap: 8px; }
+    #main-input {
+      flex: 1; height: 42px;
+      border: 0.5px solid #b5d4f4; border-radius: 10px;
+      padding: 0 14px; font-size: 14px; color: #1a1a1a;
+      background: #f0f7ff; outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    #main-input:focus { border-color: #378add; background: #fff; }
+    #main-input::placeholder { color: #85b7eb; }
+    #go-btn {
+      height: 42px; padding: 0 20px;
+      border: 0.5px solid #b5d4f4; border-radius: 10px;
+      background: #378add; color: #fff;
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      transition: background 0.15s; white-space: nowrap;
+    }
+    #go-btn:hover { background: #185fa5; }
+    .vc-hint { font-size: 12px; color: #85b7eb; margin-top: 8px; }
+
+    /* states */
+    #transcript-box {
+      background: #e6f1fb; border-radius: 8px;
+      padding: 0.6rem 1rem; font-size: 14px;
+      color: #185fa5; font-style: italic; text-align: center;
+      display: none; margin-bottom: 0.75rem;
+    }
+    #loading {
+      text-align: center; font-size: 14px;
+      color: #378add; padding: 1.25rem; display: none;
+    }
+    .dot { display: inline-block; animation: blink 1.4s infinite; margin: 0 1px; color: #378add; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
+
+    #error-msg {
+      text-align: center; font-size: 13px;
+      color: #a32d2d; background: #fcebeb;
+      border-radius: 8px; padding: 0.6rem 1rem;
+      display: none; margin-bottom: 0.75rem;
+    }
+
+    /* recipe */
+    #recipe-card { display: none; }
+    #recipe-title { font-size: 19px; font-weight: 500; color: #0c447c; margin-bottom: 1rem; }
+    .vc-section-label {
+      font-size: 11px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: #378add; margin-bottom: 0.75rem;
+    }
+    #ingredients-list {
+      list-style: none; padding-left: 0;
+      font-size: 14px; line-height: 1.9; color: #2a2a2a;
+    }
+    #ingredients-list li::before { content: '·'; color: #378add; font-weight: 700; margin-right: 8px; }
+    #steps-list { padding-left: 1.3rem; font-size: 14px; line-height: 1.9; color: #2a2a2a; }
+    #steps-list li { margin-bottom: 4px; }
+
+    #speak-btn {
+      margin-top: 1.25rem; width: 100%;
+      padding: 0.6rem 1rem; font-size: 14px;
+      border: 0.5px solid #b5d4f4; border-radius: 8px;
+      background: #e6f1fb; color: #185fa5;
+      cursor: pointer; font-weight: 500;
+      transition: background 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    #speak-btn:hover { background: #d0e8f8; }
+    #speak-btn.speaking { border-color: #378add; background: #d0e8f8; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <div class="vc-header">
+    <div class="vc-logo">
+      <div class="vc-logo-icon">
+        <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0M12 19v3M8 22h8"/></svg>
+      </div>
+      <span class="vc-title">VoiceCook</span>
+    </div>
+    <p class="vc-subtitle">Say a dish, type a name, or paste a recipe link</p>
+  </div>
+
+  <div class="vc-card">
+    <div class="vc-mic-area">
+      <button id="mic-btn" title="Tap to speak">
+        <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0M12 19v3M8 22h8"/></svg>
+      </button>
+      <div id="status">Tap the mic and say a dish name</div>
+    </div>
+
+    <div class="vc-divider">or</div>
+
+    <div class="vc-input-row">
+      <input id="main-input" type="text" placeholder="Dish name or recipe URL…" />
+      <button id="go-btn">Go</button>
+    </div>
+    <p class="vc-hint">Try "pasta carbonara" or paste a link from any recipe site</p>
+  </div>
+
+  <div id="transcript-box"></div>
+  <div id="loading"><span class="dot">•</span><span class="dot">•</span><span class="dot">•</span>&nbsp; Finding recipe…</div>
+  <div id="error-msg"></div>
+
+  <div id="recipe-card" class="vc-card">
+    <div id="recipe-title"></div>
+    <div class="vc-section-label">Ingredients</div>
+    <ul id="ingredients-list"></ul>
+    <div class="vc-section-label" style="margin-top:1rem;">Steps</div>
+    <ol id="steps-list"></ol>
+    <button id="speak-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#378add" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Read recipe aloud
+    </button>
+  </div>
+
+</div>
+<script>
+  const ANTHROPIC_API_KEY = 'YOUR_API_KEY_HERE';
+
+  const micBtn          = document.getElementById('mic-btn');
+  const statusEl        = document.getElementById('status');
+  const transcriptBox   = document.getElementById('transcript-box');
+  const recipeCard      = document.getElementById('recipe-card');
+  const recipeTitle     = document.getElementById('recipe-title');
+  const ingredientsList = document.getElementById('ingredients-list');
+  const stepsList       = document.getElementById('steps-list');
+  const speakBtn        = document.getElementById('speak-btn');
+  const loading         = document.getElementById('loading');
+  const errorMsg        = document.getElementById('error-msg');
+  const mainInput       = document.getElementById('main-input');
+  const goBtn           = document.getElementById('go-btn');
+
+  let recognition, currentRecipeText = '', speaking = false;
+
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRec) {
+    recognition = new SpeechRec();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.onstart  = () => { micBtn.classList.add('listening'); statusEl.textContent = 'Listening…'; };
+    recognition.onend    = () => { micBtn.classList.remove('listening'); statusEl.textContent = 'Tap the mic and say a dish name'; };
+    recognition.onerror  = () => { micBtn.classList.remove('listening'); statusEl.textContent = 'Could not hear you — try again'; };
+    recognition.onresult = (e) => {
+      const dish = e.results[0][0].transcript.trim();
+      showTranscript('"' + dish + '"');
+      fetchRecipe(dish);
+    };
+  } else {
+    statusEl.textContent = 'Voice not supported — try Chrome';
+    micBtn.disabled = true;
+    micBtn.style.opacity = '0.4';
+  }
+  micBtn.addEventListener('click', () => { if (recognition) { try { recognition.start(); } catch(e) {} } });
+
+  goBtn.addEventListener('click', handleInput);
+  mainInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleInput(); });
+
+  function handleInput() {
+    const val = mainInput.value.trim();
+    if (!val) return;
+    showTranscript(val);
+    fetchRecipe(val);
+  }
+
+  function isUrl(str) {
+    return /^https?:\/\//i.test(str);
+  }
+
+  function showTranscript(text) {
+    transcriptBox.style.display = 'block';
+    transcriptBox.textContent = text;
+  }
+
+  function startLoading() {
+    recipeCard.style.display = 'none';
+    errorMsg.style.display = 'none';
+    loading.style.display = 'block';
+  }
+
+  function showError(msg) {
+    loading.style.display = 'none';
+    errorMsg.style.display = 'block';
+    errorMsg.textContent = msg;
+  }
+
+  function renderRecipe(recipe) {
+    recipeTitle.textContent = recipe.title;
+    ingredientsList.innerHTML = recipe.ingredients.map(i => `<li>${i}</li>`).join('');
+    stepsList.innerHTML = recipe.steps.map(s => `<li>${s}</li>`).join('');
+    currentRecipeText = recipe.title + '. Ingredients: ' + recipe.ingredients.join(', ') + '. Steps: ' + recipe.steps.join(' ');
+    loading.style.display = 'none';
+    recipeCard.style.display = 'block';
+    statusEl.textContent = 'Recipe ready!';
+    speakRecipe();
+  }
+
+  async function fetchRecipe(input) {
+    startLoading();
+    const prompt = isUrl(input)
+      ? `A user wants to cook a recipe from this URL: ${input}\n\nUsing your knowledge of popular recipes, extract or infer what the recipe at this URL likely contains. Respond ONLY in JSON with no markdown, no backticks, no extra text: {"title":"...","ingredients":["..."],"steps":["..."]}`
+      : `Give me a simple home recipe for "${input}". Respond ONLY in JSON with no markdown, no backticks, no extra text: {"title":"...","ingredients":["..."],"steps":["..."]}`;
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content.map(b => b.text || '').join('');
+      renderRecipe(JSON.parse(text.replace(/```json|```/g, '').trim()));
+    } catch(err) {
+      showError('Could not fetch recipe — check your API key or try again.');
+    }
+  }
+
+  function speakRecipe() {
+    if (!window.speechSynthesis || !currentRecipeText) return;
+    speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(currentRecipeText);
+    utt.rate = 0.88;
+    utt.onstart = () => {
+      speaking = true;
+      speakBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#378add" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Stop reading';
+      speakBtn.classList.add('speaking');
+    };
+    utt.onend = utt.onerror = () => {
+      speaking = false;
+      speakBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#378add" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Read recipe aloud';
+      speakBtn.classList.remove('speaking');
+    };
+    speechSynthesis.speak(utt);
+  }
+
+  speakBtn.addEventListener('click', () => {
+    if (speaking) { speechSynthesis.cancel(); } else { speakRecipe(); }
+  });
+</script>
+</body>
+</html>
