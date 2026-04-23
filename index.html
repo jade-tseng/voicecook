@@ -14,55 +14,99 @@
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding: 2.5rem 1rem;
+      padding: 1.5rem 1rem 3rem;
     }
-    #app { width: 100%; max-width: 560px; }
+    #app { width: 100%; max-width: 640px; }
 
-    .vc-header { margin-bottom: 2rem; }
-    .vc-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+    /* ── header ── */
+    .vc-header { text-align: center; margin-bottom: 1.25rem; }
+    .vc-logo { display: inline-flex; align-items: center; gap: 10px; }
     .vc-logo-icon {
-      width: 36px; height: 36px; border-radius: 10px;
+      width: 34px; height: 34px; border-radius: 10px;
       background: #378add;
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
     }
-    .vc-logo-icon svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .vc-title { font-size: 22px; font-weight: 500; color: #0c447c; }
-    .vc-subtitle { font-size: 14px; color: #378add; margin-left: 46px; }
+    .vc-logo-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .vc-title { font-size: 24px; font-weight: 700; color: #0c447c; }
 
-    .vc-card {
+    /* ── hero: cookbot + bubble side by side ── */
+    .vc-hero {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 2rem;
+      width: 100%;
+    }
+
+    .cookbot {
+      width: 52%;
+      flex-shrink: 0;
+      display: block;
+      mix-blend-mode: multiply;
+    }
+
+    /* speech bubble takes remaining space */
+    .speech-bubble {
+      position: relative;
       background: #fff;
-      border: 0.5px solid #b5d4f4;
-      border-radius: 16px;
-      padding: 1.5rem;
+      border: 2.5px solid #b5d4f4;
+      border-radius: 24px;
+      padding: 1.75rem 1.5rem 1.5rem;
+      flex: 1;
+      min-width: 0;
+      margin-bottom: 0;
+    }
+    .speech-bubble::before {
+      content: '';
+      position: absolute;
+      left: -20px;
+      bottom: 40px;
+      border: 10px solid transparent;
+      border-right-color: #b5d4f4;
+    }
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      left: -15px;
+      bottom: 41px;
+      border: 9px solid transparent;
+      border-right-color: #fff;
+    }
+
+    .bubble-label {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: #378add; margin-bottom: 0.75rem;
+    }
+
+    .bubble-mic-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
       margin-bottom: 1rem;
     }
-
-    /* mic */
-    .vc-mic-area { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
     #mic-btn {
-      width: 80px; height: 80px; border-radius: 50%;
-      border: 1.5px solid #b5d4f4; background: #e6f1fb;
+      width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid #b5d4f4; background: #e6f1fb;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: background 0.2s, border-color 0.2s, transform 0.1s;
+      transition: background 0.2s, border-color 0.2s;
     }
     #mic-btn:hover { background: #d0e8f8; border-color: #85b7eb; }
     #mic-btn.listening { border-color: #378add; animation: pulse 1.2s ease-in-out infinite; }
-    #mic-btn svg { width: 32px; height: 32px; stroke: #378add; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
-    #status { font-size: 13px; color: #185fa5; text-align: center; min-height: 18px; }
+    #mic-btn svg { width: 30px; height: 30px; stroke: #378add; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+    #status { font-size: 13px; color: #185fa5; line-height: 1.4; }
 
-    .vc-divider {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 1.25rem; font-size: 12px; color: #85b7eb;
+    .bubble-divider {
+      display: flex; align-items: center; gap: 8px;
+      margin: 1rem 0; font-size: 12px; color: #85b7eb;
     }
-    .vc-divider::before, .vc-divider::after { content: ''; flex: 1; height: 0.5px; background: #b5d4f4; }
+    .bubble-divider::before, .bubble-divider::after { content: ''; flex: 1; height: 0.5px; background: #b5d4f4; }
 
-    /* single input */
-    .vc-input-row { display: flex; gap: 8px; }
+    .bubble-input-row { display: flex; gap: 8px; }
     #main-input {
-      flex: 1; height: 42px;
-      border: 0.5px solid #b5d4f4; border-radius: 10px;
+      flex: 1; height: 44px;
+      border: 1.5px solid #b5d4f4; border-radius: 10px;
       padding: 0 14px; font-size: 14px; color: #1a1a1a;
       background: #f0f7ff; outline: none;
       transition: border-color 0.15s, background 0.15s;
@@ -70,16 +114,16 @@
     #main-input:focus { border-color: #378add; background: #fff; }
     #main-input::placeholder { color: #85b7eb; }
     #go-btn {
-      height: 42px; padding: 0 20px;
-      border: 0.5px solid #b5d4f4; border-radius: 10px;
+      height: 44px; padding: 0 18px;
+      border: none; border-radius: 10px;
       background: #378add; color: #fff;
-      font-size: 14px; font-weight: 500; cursor: pointer;
+      font-size: 14px; font-weight: 600; cursor: pointer;
       transition: background 0.15s; white-space: nowrap;
     }
     #go-btn:hover { background: #185fa5; }
-    .vc-hint { font-size: 12px; color: #85b7eb; margin-top: 8px; }
+    .bubble-hint { font-size: 11px; color: #85b7eb; margin-top: 8px; }
 
-    /* states */
+    /* ── states ── */
     #transcript-box {
       background: #e6f1fb; border-radius: 8px;
       padding: 0.6rem 1rem; font-size: 14px;
@@ -102,14 +146,18 @@
       display: none; margin-bottom: 0.75rem;
     }
 
-    /* recipe */
-    #recipe-card { display: none; }
-    #recipe-title { font-size: 19px; font-weight: 500; color: #0c447c; margin-bottom: 1rem; }
+    /* ── recipe card ── */
+    .vc-card {
+      background: #fff; border: 0.5px solid #b5d4f4;
+      border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem;
+    }
     .vc-section-label {
       font-size: 11px; font-weight: 500;
       text-transform: uppercase; letter-spacing: 0.08em;
       color: #378add; margin-bottom: 0.75rem;
     }
+    #recipe-card { display: none; }
+    #recipe-title { font-size: 20px; font-weight: 600; color: #0c447c; margin-bottom: 1rem; }
     #ingredients-list {
       list-style: none; padding-left: 0;
       font-size: 14px; line-height: 1.9; color: #2a2a2a;
@@ -129,6 +177,13 @@
     }
     #speak-btn:hover { background: #d0e8f8; }
     #speak-btn.speaking { border-color: #378add; background: #d0e8f8; }
+
+    @media (max-width: 480px) {
+      .vc-hero { flex-direction: column; align-items: center; gap: 0; }
+      .cookbot { width: 70%; }
+      .speech-bubble { margin-bottom: 0; width: 100%; }
+      .speech-bubble::before, .speech-bubble::after { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -141,24 +196,29 @@
       </div>
       <span class="vc-title">VoiceCook</span>
     </div>
-    <p class="vc-subtitle">Say a dish, type a name, or paste a recipe link</p>
   </div>
 
-  <div class="vc-card">
-    <div class="vc-mic-area">
-      <button id="mic-btn" title="Tap to speak">
-        <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0M12 19v3M8 22h8"/></svg>
-      </button>
-      <div id="status">Tap the mic and say a dish name</div>
-    </div>
+  <div class="vc-hero">
+    <img src="cookbot.png" alt="CookBot" class="cookbot" />
 
-    <div class="vc-divider">or</div>
+    <div class="speech-bubble">
+      <div class="bubble-label">Say it</div>
+      <div class="bubble-mic-row">
+        <button id="mic-btn" title="Tap to speak">
+          <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0M12 19v3M8 22h8"/></svg>
+        </button>
+        <div id="status">Tap to speak a dish name</div>
+      </div>
 
-    <div class="vc-input-row">
-      <input id="main-input" type="text" placeholder="Dish name or recipe URL…" />
-      <button id="go-btn">Go</button>
+      <div class="bubble-divider">or type</div>
+
+      <div class="bubble-label">Dish name or recipe URL</div>
+      <div class="bubble-input-row">
+        <input id="main-input" type="text" placeholder="" />
+        <button id="go-btn">Go</button>
+      </div>
+      <p class="bubble-hint">Paste any recipe link or type a dish name</p>
     </div>
-    <p class="vc-hint">Try "pasta carbonara" or paste a link from any recipe site</p>
   </div>
 
   <div id="transcript-box"></div>
@@ -179,8 +239,6 @@
 
 </div>
 <script>
-  const ANTHROPIC_API_KEY = 'YOUR_API_KEY_HERE';
-
   const micBtn          = document.getElementById('mic-btn');
   const statusEl        = document.getElementById('status');
   const transcriptBox   = document.getElementById('transcript-box');
@@ -202,10 +260,11 @@
     recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.onstart  = () => { micBtn.classList.add('listening'); statusEl.textContent = 'Listening…'; };
-    recognition.onend    = () => { micBtn.classList.remove('listening'); statusEl.textContent = 'Tap the mic and say a dish name'; };
+    recognition.onend    = () => { micBtn.classList.remove('listening'); statusEl.textContent = 'Tap to speak a dish name'; };
     recognition.onerror  = () => { micBtn.classList.remove('listening'); statusEl.textContent = 'Could not hear you — try again'; };
     recognition.onresult = (e) => {
       const dish = e.results[0][0].transcript.trim();
+      mainInput.value = dish;
       showTranscript('"' + dish + '"');
       fetchRecipe(dish);
     };
@@ -226,9 +285,7 @@
     fetchRecipe(val);
   }
 
-  function isUrl(str) {
-    return /^https?:\/\//i.test(str);
-  }
+  function isUrl(str) { return /^https?:\/\//i.test(str); }
 
   function showTranscript(text) {
     transcriptBox.style.display = 'block';
@@ -264,25 +321,15 @@
       ? `A user wants to cook a recipe from this URL: ${input}\n\nUsing your knowledge of popular recipes, extract or infer what the recipe at this URL likely contains. Respond ONLY in JSON with no markdown, no backticks, no extra text: {"title":"...","ingredients":["..."],"steps":["..."]}`
       : `Give me a simple home recipe for "${input}". Respond ONLY in JSON with no markdown, no backticks, no extra text: {"title":"...","ingredients":["..."],"steps":["..."]}`;
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/recipe', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }]
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
       });
       const data = await res.json();
-      const text = data.content.map(b => b.text || '').join('');
-      renderRecipe(JSON.parse(text.replace(/```json|```/g, '').trim()));
+      renderRecipe(data);
     } catch(err) {
-      showError('Could not fetch recipe — check your API key or try again.');
+      showError('Could not fetch recipe — please try again.');
     }
   }
 
