@@ -1,0 +1,169 @@
+#!/bin/bash
+#
+# Pre-commit hook to detect secrets and API keys
+# This hook scans staged files for potential secrets before commit
+#
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Track if any secrets were found
+SECRETS_FOUND=0
+
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED_FILES" ]; then
+    echo -e "${GREEN}✓ No files staged for commit${NC}"
+    exit 0
+fi
+
+echo -e "${YELLOW}🔍 Scanning for secrets and API keys...${NC}"
+
+# Patterns to detect secrets
+# OpenAI API keys
+OPENAI_PATTERN='sk-[a-zA-Z0-9]{32,}'
+# Google/Gemini API keys (can be 20-50+ characters after AIza)
+GOOGLE_PATTERN='AIza[0-9A-Za-z_-]{20,}'
+GEMINI_PATTERN='AIza[0-9A-Za-z_-]{20,}'
+# Variable assignments with API keys (catches GEMINI_API_KEY="...", OPENAI_API_KEY=..., etc.)
+GEMINI_VAR_PATTERN='(GEMINI|GOOGLE)[_ ]*API[_ ]*KEY\s*[=:]\s*["\x27]?[A-Za-z0-9_-]{20,}["\x27]?'
+OPENAI_VAR_PATTERN='OPENAI[_ ]*API[_ ]*KEY\s*[=:]\s*["\x27]?[A-Za-z0-9_-]{20,}["\x27]?'
+# Generic API keys (common patterns)
+API_KEY_PATTERN='(api[_-]?key|apikey)[\s:=]+["\x27]?[a-zA-Z0-9_-]{20,}["\x27]?'
+# AWS keys
+AWS_ACCESS_KEY_PATTERN='AKIA[0-9A-Z]{16}'
+AWS_SECRET_KEY_PATTERN='aws[_-]?secret[_-]?access[_-]?key[\s:=]+["\x27]?[a-zA-Z0-9/+=]{40}["\x27]?'
+# Generic secret patterns
+SECRET_PATTERN='(secret|password|token|credential)[\s:=]+["\x27]?[a-zA-Z0-9_-]{20,}["\x27]?'
+# Private keys
+PRIVATE_KEY_PATTERN='-----BEGIN.*PRIVATE KEY-----'
+# Bearer tokens
+BEARER_TOKEN_PATTERN='bearer[\s]+[a-zA-Z0-9_-]{20,}'
+
+# Function to check a file for secrets
+check_file() {
+    local file=$1
+    local file_secrets=0
+    
+    # Skip binary files
+    if git diff --cached --numstat "$file" | grep -q '^-'; then
+        return 0
+    fi
+    
+    # Get the staged content
+    local content=$(git show :"$file" 2>/dev/null)
+    
+    if [ -z "$content" ]; then
+        return 0
+    fi
+    
+    # Check for OpenAI keys
+    if echo "$content" | grep -qiE "$OPENAI_PATTERN"; then
+        echo -e "${RED}✗ SECRET DETECTED in $file:${NC}"
+        echo -e "${RED}   Found potential OpenAI API key (sk-...)${NC}"
+        echo "$content" | grep -iE "$OPENAI_PATTERN" | head -3 | sed 's/^/   /'
+        file_secrets=1
+    fi
+    
+    # Check for Google/Gemini keys (AIza pattern)
+    if echo "$content" | grep -qiE "$GOOGLE_PATTERN"; then
+        echo -e "${RED}✗ SECRET DETECTED in $file:${NC}"
+        echo -e "${RED}   Found potential Google/Gemini API key (AIza...)${NC}"
+        echo "$content" | grep -iE "$GOOGLE_PATTERN" | head -3 | sed 's/^/   /'
+        file_secrets=1
+    fi
+    
+    # Check for GEMINI_API_KEY or GOOGLE_API_KEY variable assignments
+    if echo "$content" | grep -qiE "$GEMINI_VAR_PATTERN"; then
+        echo -e "${RED}✗ SECRET DETECTED in $file:${NC}"
+        echo -e "${RED}   Found GEMINI/GOOGLE_API_KEY variable assignment${NC}"
+        echo "$content" | grep -iE "$GEMINI_VAR_PATTERN" | head -3 | sed 's/^/   /'
+        file_secrets=1
+    fi
+    
+    # Check for OPENAI_API_KEY variable assignments
+    if echo "$content" | grep -qiE "$OPENAI_VAR_PATTERN"; then
+        echo -e "${RED}✗ SECRET DETECTED in $file:${NC}"
+        echo -e "${RED}   Found OPENAI_API_KEY variable assignment${NC}"
+        echo "$content" | grep -iE "$OPENAI_VAR_PATTERN" | head -3 | sed 's/^/   /'
+        file_secrets=1
+    fi
+    
+    # Check for generic API keys
+    if echo "$content" | grep -qiE "$API_KEY_PATTERN"; then
+        echo -e "${RED}✗ SECRET DETECTED in $file:${NC}"
+        echo -e "${RED}   Found potential API key pattern${NC}"
+        echo "$content" | grep -iE "$API_KEY_PATTERN" | head -3 | sed 's/^/   /'
+        file_secrets=1
+    fi
+    
+    # Check for AWS keys
+    if echo "$content" | grep -qiE "$AWS_ACCESS_KEY_PATTERN"; then
+        echo -e "${RED}✗ SECRET DETECTED in $file:${NC}"
+        echo -e "${RED}   Found potential AWS Access Key (AKIA...)${NC}"
+        echo "$content" | grep -iE "$AWS_ACCESS_KEY_PATTERN" | head -3 | sed 's/^/   /'
+        file_secrets=1
+    fi
+    
+    if echo "$content" | grep -qiE "$AWS_SECRET_KEY_PATTERN"; then
+        echo -e "${RED}✗ SECRET DETECTED in $file:${NC}"
+        echo -e "${RED}   Found potential AWS Secret Key${NC}"
+        echo "$content" | grep -iE "$AWS_SECRET_KEY_PATTERN" | head -3 | sed 's/^/   /'
+        file_secrets=1
+    fi
+    
+    # Check for private keys
+    if echo "$content" | grep -qiE -- "$PRIVATE_KEY_PATTERN"; then
+        echo -e "${RED}✗ SECRET DETECTED in $file:${NC}"
+        echo -e "${RED}   Found potential private key${NC}"
+        echo "$content" | grep -iE "$PRIVATE_KEY_PATTERN" | head -1 | sed 's/^/   /'
+        file_secrets=1
+    fi
+    
+    # Check for bearer tokens
+    if echo "$content" | grep -qiE "$BEARER_TOKEN_PATTERN"; then
+        echo -e "${RED}✗ SECRET DETECTED in $file:${NC}"
+        echo -e "${RED}   Found potential Bearer token${NC}"
+        echo "$content" | grep -iE "$BEARER_TOKEN_PATTERN" | head -3 | sed 's/^/   /'
+        file_secrets=1
+    fi
+    
+    # Check for generic secrets (less strict, only flag obvious ones)
+    if echo "$content" | grep -qiE "$SECRET_PATTERN"; then
+        # Skip if it's in a comment or documentation
+        if ! echo "$content" | grep -qiE "$SECRET_PATTERN" | grep -qiE '(example|placeholder|xxx|your_|TODO|FIXME)'; then
+            echo -e "${YELLOW}⚠ WARNING in $file:${NC}"
+            echo -e "${YELLOW}   Found potential secret pattern (may be false positive)${NC}"
+            echo "$content" | grep -iE "$SECRET_PATTERN" | head -2 | sed 's/^/   /'
+        fi
+    fi
+    
+    if [ $file_secrets -eq 1 ]; then
+        SECRETS_FOUND=1
+    fi
+}
+
+# Check each staged file
+for file in $STAGED_FILES; do
+    # Skip the hook directory itself
+    if [[ "$file" == hook/* ]]; then
+        continue
+    fi
+    check_file "$file"
+done
+
+# Exit with error if secrets were found
+if [ $SECRETS_FOUND -eq 1 ]; then
+    echo ""
+    echo -e "${RED}❌ Commit blocked: Secrets detected in staged files${NC}"
+    echo -e "${YELLOW}Please remove secrets before committing.${NC}"
+    echo -e "${YELLOW}If this is a false positive, you can bypass with: git commit --no-verify${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ No secrets detected${NC}"
+exit 0
