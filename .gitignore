@@ -2,3 +2,6 @@ mlruns/
 cuisine_pipeline.joblib
 
 __pycache__
+# Never commit env files
+.env
+**/.env
