@@ -3,16 +3,16 @@ from typing import TypedDict
 
 
 class SessionData(TypedDict):
-    recipe_text: str
+    recipe: dict
     history: list[dict]
 
 
 _store: dict[str, SessionData] = {}
 
 
-def create_session(recipe_text: str) -> str:
+def create_session(recipe: dict) -> str:
     sid = str(uuid.uuid4())
-    _store[sid] = {"recipe_text": recipe_text, "history": []}
+    _store[sid] = {"recipe": recipe, "history": []}
     return sid
 
 

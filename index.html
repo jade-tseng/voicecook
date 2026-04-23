@@ -179,7 +179,18 @@
 
 </div>
 <script>
-  const ANTHROPIC_API_KEY = 'YOUR_API_KEY_HERE';
+  // Serve via: python -m http.server 5500
+
+  const API_BASE = 'http://localhost:8001';
+  let sessionId = null;
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 
   const micBtn          = document.getElementById('mic-btn');
   const statusEl        = document.getElementById('status');
@@ -194,7 +205,7 @@
   const mainInput       = document.getElementById('main-input');
   const goBtn           = document.getElementById('go-btn');
 
-  let recognition, currentRecipeText = '', speaking = false;
+  let recognition, currentRecipeText = '', speaking = false, currentAudio = null;
 
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRec) {
@@ -207,7 +218,7 @@
     recognition.onresult = (e) => {
       const dish = e.results[0][0].transcript.trim();
       showTranscript('"' + dish + '"');
-      fetchRecipe(dish);
+      createSession(dish);
     };
   } else {
     statusEl.textContent = 'Voice not supported — try Chrome';
@@ -223,11 +234,7 @@
     const val = mainInput.value.trim();
     if (!val) return;
     showTranscript(val);
-    fetchRecipe(val);
-  }
-
-  function isUrl(str) {
-    return /^https?:\/\//i.test(str);
+    createSession(val);
   }
 
   function showTranscript(text) {
@@ -249,63 +256,88 @@
 
   function renderRecipe(recipe) {
     recipeTitle.textContent = recipe.title;
-    ingredientsList.innerHTML = recipe.ingredients.map(i => `<li>${i}</li>`).join('');
-    stepsList.innerHTML = recipe.steps.map(s => `<li>${s}</li>`).join('');
-    currentRecipeText = recipe.title + '. Ingredients: ' + recipe.ingredients.join(', ') + '. Steps: ' + recipe.steps.join(' ');
+    ingredientsList.innerHTML = recipe.ingredients.map(i => `<li>${escapeHtml(i.name)}</li>`).join('');
+    stepsList.innerHTML = recipe.instructions.map(s => `<li>${escapeHtml(s.text)}</li>`).join('');
     loading.style.display = 'none';
     recipeCard.style.display = 'block';
     statusEl.textContent = 'Recipe ready!';
-    speakRecipe();
   }
 
-  async function fetchRecipe(input) {
+  function speakRecipe(recipe) {
+    const text = [
+      recipe.title + '.',
+      'Ingredients: ' + recipe.ingredients.map(i => i.name).join(', ') + '.',
+      'Steps: ' + recipe.instructions.map(s => s.text).join(' ')
+    ].join(' ');
+    currentRecipeText = text;
+    speakText(text);
+  }
+
+  async function createSession(input) {
     startLoading();
-    const prompt = isUrl(input)
-      ? `A user wants to cook a recipe from this URL: ${input}\n\nUsing your knowledge of popular recipes, extract or infer what the recipe at this URL likely contains. Respond ONLY in JSON with no markdown, no backticks, no extra text: {"title":"...","ingredients":["..."],"steps":["..."]}`
-      : `Give me a simple home recipe for "${input}". Respond ONLY in JSON with no markdown, no backticks, no extra text: {"title":"...","ingredients":["..."],"steps":["..."]}`;
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch(`${API_BASE}/session`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }]
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipe_input: input })
       });
-      const data = await res.json();
-      const text = data.content.map(b => b.text || '').join('');
-      renderRecipe(JSON.parse(text.replace(/```json|```/g, '').trim()));
-    } catch(err) {
-      showError('Could not fetch recipe — check your API key or try again.');
+      if (res.ok) {
+        const data = await res.json();
+        sessionId = data.session_id;
+        renderRecipe(data.recipe);
+        speakRecipe(data.recipe);
+      } else if (res.status === 404) {
+        showError("Couldn't find that recipe — try a different name or paste a URL");
+      } else if (res.status === 422) {
+        showError("That URL doesn't seem to have a recipe on it");
+      } else if (res.status === 502) {
+        showError("Couldn't reach that URL — try a different one");
+      } else if (res.status === 503) {
+        showError("Recipe service is down — try again in a moment");
+      } else {
+        showError("Something went wrong — try again");
+      }
+    } catch (_) {
+      showError("Recipe service is down — try again in a moment");
     }
   }
 
-  function speakRecipe() {
-    if (!window.speechSynthesis || !currentRecipeText) return;
-    speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(currentRecipeText);
-    utt.rate = 0.88;
-    utt.onstart = () => {
-      speaking = true;
-      speakBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#378add" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Stop reading';
-      speakBtn.classList.add('speaking');
-    };
-    utt.onend = utt.onerror = () => {
-      speaking = false;
-      speakBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#378add" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Read recipe aloud';
-      speakBtn.classList.remove('speaking');
-    };
-    speechSynthesis.speak(utt);
+  async function speakText(text) {
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    try {
+      const res = await fetch(`${API_BASE}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      if (!res.ok) return;
+      const url = URL.createObjectURL(await res.blob());
+      const audio = new Audio(url);
+      currentAudio = audio;
+      audio.onplay = () => {
+        speaking = true;
+        speakBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#378add" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Stop reading';
+        speakBtn.classList.add('speaking');
+      };
+      audio.onended = audio.onerror = () => {
+        if (currentAudio === audio) { URL.revokeObjectURL(url); currentAudio = null; }
+        speaking = false;
+        speakBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#378add" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Read recipe aloud';
+        speakBtn.classList.remove('speaking');
+      };
+      audio.play();
+    } catch (_) { /* TTS failure is non-fatal */ }
   }
 
   speakBtn.addEventListener('click', () => {
-    if (speaking) { speechSynthesis.cancel(); } else { speakRecipe(); }
+    if (speaking) {
+      if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+      speaking = false;
+      speakBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#378add" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Read recipe aloud';
+      speakBtn.classList.remove('speaking');
+    } else {
+      speakText(currentRecipeText);
+    }
   });
 </script>
 </body>
