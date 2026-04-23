@@ -2,3 +2,14 @@ mlruns/
 cuisine_pipeline.joblib
 
 __pycache__
+# Never commit env files
+.env
+**/.env
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Python compiled
+*.py[cod]
+**/__pycache__/
