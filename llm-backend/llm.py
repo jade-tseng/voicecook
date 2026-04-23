@@ -14,10 +14,28 @@ SYSTEM_PROMPT = (
 )
 
 
+def _format_recipe_for_prompt(recipe: dict) -> str:
+    lines = [f"Recipe: {recipe.get('title', 'Untitled')}"]
+    if recipe.get("servings"):
+        lines.append(f"Servings: {recipe['servings']}")
+    if recipe.get("total_time_min"):
+        lines.append(f"Total time: {recipe['total_time_min']} minutes")
+    ingredients = recipe.get("ingredients", [])
+    if ingredients:
+        lines.append("Ingredients:")
+        for ing in ingredients:
+            lines.append(f"- {ing.get('name', '')}")
+    instructions = recipe.get("instructions", [])
+    if instructions:
+        lines.append("Instructions:")
+        for inst in sorted(instructions, key=lambda x: x.get("step", 0)):
+            lines.append(f"{inst.get('step', '')}. {inst.get('text', '')}")
+    return "\n".join(lines)
+
+
 def _build_contents(
     history: list[dict], user_message: str
 ) -> list[types.Content]:
-    """Convert our history format to Gemini's Content objects."""
     contents: list[types.Content] = []
     for msg in history:
         role = "model" if msg["role"] == "assistant" else msg["role"]
@@ -31,12 +49,12 @@ def _build_contents(
 
 
 async def stream_recipe_answer(
-    recipe_text: str,
+    recipe: dict,
     history: list[dict],
     user_message: str,
 ) -> AsyncIterator[str]:
     client = genai.Client(api_key=settings.gemini_api_key)
-    system = f"{SYSTEM_PROMPT}\n\nRecipe context:\n{recipe_text}"
+    system = f"{SYSTEM_PROMPT}\n\nRecipe context:\n{_format_recipe_for_prompt(recipe)}"
     contents = _build_contents(history, user_message)
 
     try:
